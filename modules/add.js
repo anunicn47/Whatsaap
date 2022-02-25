@@ -1,130 +1,50 @@
-const { MessageType } = require("@adiwajshing/baileys");
-const chalk = require("chalk");
-const STRINGS = require("../lib/db.js");
-const ADD = STRINGS.add;
-const inputSanitization = require("../sidekick/input-sanitization");
-const CONFIG = require("../config")
-const fs = require('fs');
+let fetch = require('node-fetch')
+let handler = async (m, { conn, text, participants, usedPrefix, command }) => {
+  if (!text) throw `_Enter number!_ \nExample:\n\n${usedPrefix + command + ' ' + global.owner[0]}`
+  let _participants = participants.map(user => user.jid)
+  let users = (await Promise.all(
+    text.split(',')
+      .map(v => v.replace(/[^0-9]/g, ''))
+      .filter(v => v.length > 4 && v.length < 20 && !_participants.includes(v + '@s.whatsapp.net'))
+      .map(async v => [
+        v,
+        await conn.isOnWhatsApp(v + '@s.whatsapp.net')
+      ])
+  )).filter(v => v[1]).map(v => v[0] + '@c.us')
+  let response = await conn.groupAdd(m.chat, users)
+  if (response[users] == 408) throw `The number has been out recently\nCan only enter via ${usedPrefix}link`
+  let pp = await conn.getProfilePicture(m.chat).catch(_ => false)
+  let jpegThumbnail = pp ? await (await fetch(pp)).buffer() : false
+  for (let user of response.participants.filter(user => Object.values(user)[0].code == 403)) {
+    let [[jid, {
+      invite_code,
+      invite_code_exp
+    }]] = Object.entries(user)
+    let teks = `Invite @${jid.split('@')[0]} using invite...`
+    m.reply(teks, null, {
+      contextInfo: {
+        mentionedJid: conn.parseMention(teks)
+      }
+    })
+    await conn.sendGroupV4Invite(m.chat, jid, invite_code, invite_code_exp, false, 'Invitation to join my WhatsApp group', jpegThumbnail ? {
+      jpegThumbnail
+    } : {})
+  }
+}
+handler.help = ['add/+'].map(v => v + ' number,number')
+handler.tags = ['admin']
+handler.command = /^(add|\+)$/i
+handler.owner = false
+handler.mods = false
+handler.premium = false
+handler.group = true
+handler.private = false
 
-module.exports = {
-    name: "add",
-    description: ADD.DESCRIPTION,
-    extendedDescription: ADD.EXTENDED_DESCRIPTION,
-    demo: { isEnabled: false },
-    async handle(client, chat, BotsApp, args) {
-        try {
-            if (!BotsApp.isGroup) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    STRINGS.general.NOT_A_GROUP,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            if (!BotsApp.isBotGroupAdmin) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    STRINGS.general.BOT_NOT_ADMIN,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            if (!args[0]) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.NO_ARG_ERROR,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            let number;
-            if (isNaN(args[0]) || args[0][0] === "+" || args[0].length < 10) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.NUMBER_SYNTAX_ERROR,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            if (args[0].length == 10 && !isNaN(args[0])) {
-                number = CONFIG.COUNTRY_CODE + args[0];
-            } else {
-                number = args[0];
-            }
-            const exists = await client.isOnWhatsApp(
-                number + "@s.whatsapp.net"
-            );
-            if (!exists) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.NOT_ON_WHATSAPP,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            const request = client.groupAdd(BotsApp.chatId, [
-                BotsApp.owner,
-                number + "@s.whatsapp.net",
-            ]);
-            const response = await request;
+handler.admin = true
+handler.botAdmin = true
 
-            if (response[number + "@c.us"] == 408) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.NO_24HR_BAN,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            } else if (response[number + "@c.us"] == 403) {
-                for (const index in response.participants) {
-                    if ([number + "@c.us"] in response.participants[index]) {
-                        var code = response.participants[index][number + "@c.us"].invite_code;
-                        var tom = response.participants[index][number + "@c.us"].invite_code_exp;
-                    }
-                }
-                var invite = {
-                    caption: "```Hi! You have been invited to join this WhatsApp group by BotsApp!```\n\n🔗https://mybotsapp.com",
-                    groupJid: BotsApp.groupId,
-                    groupName: BotsApp.groupName,
-                    inviteCode: code,
-                    inviteExpiration: tom,
-                    jpegThumbnail: fs.readFileSync('./images/BotsApp_invite.jpeg')
-                }
-                await client.sendMessage(
-                    number + "@s.whatsapp.net",
-                    invite,
-                    MessageType.groupInviteMessage
-                );
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.PRIVACY,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            } else if (response[number + "@c.us"] == 409) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    ADD.ALREADY_MEMBER,
-                    MessageType.text
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-                return;
-            }
-            client.sendMessage(
-                BotsApp.chatId,
-                "```" + number + ADD.SUCCESS + "```",
-                MessageType.text
-            );
-        } catch (err) {
-            if (err.status == 400) {
-                await inputSanitization.handleError(
-                    err,
-                    client,
-                    BotsApp,
-                    (customMessage = ADD.NOT_ON_WHATSAPP)
-                ).catch(err => inputSanitization.handleError(err, client, BotsApp));
-            }
-            await inputSanitization.handleError(err, client, BotsApp);
-        }
-        return;
-    },
-};
+handler.fail = null
+handler.limit = true
+
+module.exports = handler
+
