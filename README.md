@@ -3,7 +3,7 @@
 </p>
 
 
-# 💠[BotsApp](https://mybotsapp.com/)💠
+# 💠[ΛꋊU](https://mybotsapp.com/)💠
 > Your Personal Assisstant, on WhatsApp!
 ---
 ![GitHub top language](https://img.shields.io/github/languages/top/BotsAppOfficial/BotsApp) [![GitHub release](https://img.shields.io/github/release/BotsAppOfficial/BotsApp.svg)](https://github.com/bkimminich/juice-shop/releases/latest)
@@ -56,7 +56,7 @@ To follow this method, you will need to have docker installed on your machine an
 To host the bot on your own device using docker, follow the following steps on your terminal / command prompt -
 
 ```bash
-git clone https://github.com/BotsAppOfficial/BotsApp.git
+git clone https://github.com/anunicn47/BotsApp.git
 cd BotsApp
 docker build -t botsapp .
 docker run --rm --name botsapp botsapp
@@ -71,7 +71,7 @@ To use this method, you will need ffmpeg, nodejs, npm installed on your device.
 To run the bot on your device manually, you can use the following commands -
 
 ```bash
-git clone https://github.com/BotsAppOfficial/BotsApp.git
+git clone https://github.com/anunicn47/BotsApp.git
 cd BotsApp
 npm install
 npm start
