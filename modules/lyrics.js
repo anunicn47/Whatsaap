@@ -1,96 +1,22 @@
-const got = require("got");
-const { MessageType, Mimetype } = require("@adiwajshing/baileys");
-const inputSanitization = require("../sidekick/input-sanitization");
-const STRINGS = require("../lib/db");
-const songlyrics = require("songlyrics").default;
+// Pngocok handal
 
-module.exports = {
-    name: "lyrics",
-    description: STRINGS.lyrics.DESCRIPTION,
-    extendedDescription: STRINGS.lyrics.EXTENDED_DESCRIPTION,
-    demo: { isEnabled: true, text: ".lyrics Stairway to heaven" },
-    async handle(client, chat, BotsApp, args) {
-        const processing = await client.sendMessage(
-            BotsApp.chatId,
-            STRINGS.lyrics.PROCESSING,
-            MessageType.text
-        );
-        try {
-            var song = "";
-            if (BotsApp.isReply) {
-                song = BotsApp.replyMessage;
-            } else if (args.length == 0) {
-                client.sendMessage(
-                    BotsApp.chatId,
-                    STRINGS.lyrics.NO_ARG,
-                    MessageType.text
-                );
-                return;
-            } else {
-                song = args.join(" ");
-            }
-            let Response = await got(
-                `https://some-random-api.ml/lyrics/?title=${song}`
-            );
-            let data = JSON.parse(Response.body);
-            let caption =
-                "*Title :* " +
-                data.title +
-                "\n*Author :* " +
-                data.author +
-                "\n*Lyrics :*\n" +
-                data.lyrics;
+let fetch = require('node-fetch')
+let handler = async (m, { text }) => {
+  let res = await fetch(global.API('https://some-random-api.ml', '/lyrics', {
+    title: text
+  }))
+  if (!res.ok) throw await res.text()
+  let json = await res.json()
+  if (!json.thumbnail.genius) throw json
+  conn.sendFile(m.chat, json.thumbnail.genius, '', `
+*${json.title}*
+_${json.author}_\n
+${json.lyrics}\n\n
+${json.links.genius}
+`, m)
+}
+handler.help = ['lyric'].map(v => v + ' <song title>')
+handler.tags = ['internet']
+handler.command = /^(lirik|lyrics|lyric)$/i
 
-            try {
-                await client.sendMessage(
-                    BotsApp.chatId,
-                    { url: data.thumbnail.genius },
-                    MessageType.image,
-                    {
-                        mimetype: Mimetype.png,
-                        caption: caption,
-                        thumbnail: null,
-                    }
-                );
-            } catch (err) {
-                client.sendMessage(BotsApp.chatId, caption, MessageType.text);
-            }
-            await client.deleteMessage(BotsApp.chatId, {
-                id: processing.key.id,
-                remoteJid: BotsApp.chatId,
-                fromMe: true,
-            });
-            // return;
-        } catch (err) {
-            try{
-                let data = await songlyrics(song)
-                let caption =
-                    "*Title :* " +
-                    song +
-                    "\n*Source :* " +
-                    data.source.link +
-                    "\n*Lyrics :*\n" +
-                    data.lyrics;
-    
-                await client.sendMessage(BotsApp.chatId, caption, MessageType.text);
-                await client.deleteMessage(BotsApp.chatId, {
-                    id: processing.key.id,
-                    remoteJid: BotsApp.chatId,
-                    fromMe: true,
-                });
-            }catch(err){
-                await inputSanitization.handleError(
-                    err,
-                    client,
-                    BotsApp,
-                    STRINGS.lyrics.NOT_FOUND
-                );
-                return await client.deleteMessage(BotsApp.chatId, {
-                    id: processing.key.id,
-                    remoteJid: BotsApp.chatId,
-                    fromMe: true,
-                });
-            }
-        }
-    },
-};
+module.exports = handler
