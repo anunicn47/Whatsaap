@@ -56,7 +56,7 @@ To follow this method, you will need to have docker installed on your machine an
 To host the bot on your own device using docker, follow the following steps on your terminal / command prompt -
 
 ```bash
-git clone https://github.com/anunicn47/BotsApp.git
+git clone https://github.com/anunicn47/Whatsaap.git
 cd BotsApp
 docker build -t botsapp .
 docker run --rm --name botsapp botsapp
