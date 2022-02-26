@@ -71,7 +71,7 @@ To use this method, you will need ffmpeg, nodejs, npm installed on your device.
 To run the bot on your device manually, you can use the following commands -
 
 ```bash
-git clone https://github.com/anunicn47/BotsApp.git
+git clone https://github.com/anunicn47/Whatsaap.git
 cd BotsApp
 npm install
 npm start
